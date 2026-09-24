@@ -1,0 +1,350 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Idle Pirate</title>
+<link href="https://fonts.googleapis.com/css2?family=Pirata+One&display=swap" rel="stylesheet">
+<style>
+:root{box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px);--bg:#b98a52;--card:#f4e4bc;--ink:#3a2414;--mut:#7a5a35;--gold:#a8650a;--hp:#2e9e5b;--ehp:#c0392b;--line:#8a5a2b;--bar:#d9c08a}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#1a1410;--card:#2b2118;--ink:#f1e2c0;--mut:#b89b6a;--gold:#f5c04a;--hp:#4ad18a;--ehp:#ff6b5a;--line:#6b4a25;--bar:#1a1410}}
+:root[data-theme="dark"]{--bg:#1a1410;--card:#2b2118;--ink:#f1e2c0;--mut:#b89b6a;--gold:#f5c04a;--hp:#4ad18a;--ehp:#ff6b5a;--line:#6b4a25;--bar:#1a1410}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+body{margin:0 auto;background:var(--bg) repeating-linear-gradient(90deg,transparent 0 58px,rgba(0,0,0,.12) 58px 60px);color:var(--ink);font:15px/1.4 system-ui,sans-serif;max-width:520px;padding:10px 10px 78px;user-select:none;min-height:100vh}
+h1,.hd,button,nav{font-family:'Pirata One',Georgia,serif;letter-spacing:.5px}
+.card{background:var(--card);border:3px solid var(--line);border-radius:10px;padding:10px;margin-bottom:10px;box-shadow:inset 0 0 0 2px rgba(255,255,255,.15),0 3px 0 rgba(0,0,0,.35)}
+.top{display:flex;justify-content:space-between;align-items:center;font-size:20px}
+.gold{color:var(--gold)}
+.bar{height:12px;background:var(--bar);border:2px solid var(--line);border-radius:3px;overflow:hidden;margin:4px 0}
+.bar i{display:block;height:100%;transition:width .25s}
+.hp i{background:var(--hp)}.ehp i{background:var(--ehp)}.xp i{background:#f5c04a}
+canvas{width:100%;display:block;image-rendering:pixelated;border:3px solid #5e3a18;border-radius:6px;background:#000}
+.row{display:flex;gap:8px;margin-bottom:8px}
+button{font-size:17px;border:2px solid #d9a441;border-radius:8px;padding:10px 6px;background:linear-gradient(#8a5a2b,#5e3a18);color:#fff2cf;text-shadow:0 1px 0 #000;flex:1;cursor:pointer;box-shadow:0 3px 0 #2a1808}
+button:active{transform:translateY(2px);box-shadow:0 1px 0 #2a1808}
+button.alt{background:linear-gradient(#3f6285,#24384f)}
+button.ult{background:linear-gradient(#a0322a,#661a15)}
+button:disabled,button.no{opacity:.45}
+.log{font-size:13px;color:var(--mut);min-height:86px}.log div:first-child{color:var(--ink);font-weight:600}
+.item{display:flex;justify-content:space-between;align-items:center;gap:8px;padding:8px 0;border-bottom:2px dashed var(--line)}
+.item:last-child{border:0}.item button{flex:0 0 auto;min-width:96px}.item small{color:var(--mut);display:block}
+h3{margin:2px 0 4px;font-size:22px;font-weight:400}
+.wanted{text-align:center;border:3px double var(--line);padding:8px;background:rgba(0,0,0,.05)}
+.wanted b{font-size:26px;font-weight:400;display:block}
+nav{position:fixed;left:0;right:0;bottom:0;display:flex;max-width:520px;margin:0 auto;background:linear-gradient(#6b4423,#3e2712);border-top:3px solid #d9a441;padding-bottom:env(safe-area-inset-bottom,0px)}
+nav button{background:none;border:0;box-shadow:none;color:#c9a66b;border-radius:0;padding:8px 2px;font-size:12px;text-shadow:none}
+nav button.on{color:#ffd66b}
+.ov{position:fixed;inset:0;background:rgba(0,0,0,.8);display:flex;align-items:center;justify-content:center;padding:20px;z-index:9}
+.ov .card{max-width:380px;text-align:center}
+input{font:inherit;font-size:16px;padding:9px;border:2px solid var(--line);border-radius:8px;background:var(--card);color:var(--ink);flex:2;min-width:0;user-select:text}
+.hide{display:none}
+#toast{position:fixed;top:calc(12px + env(safe-area-inset-top,0px));left:50%;transform:translate(-50%,-120px);background:#3e2712;color:#ffd66b;border:2px solid #d9a441;padding:10px 16px;border-radius:8px;font:20px 'Pirata One',Georgia,serif;transition:transform .3s;z-index:20;text-align:center;max-width:90%}
+#toast.show{transform:translate(-50%,0)}
+</style></head><body>
+<div class="card">
+ <div class="top hd"><span id="lv"></span><span class="gold" id="gold"></span></div>
+ <div class="bar xp"><i id="xpb"></i></div>
+ <div style="font-size:13px;color:var(--mut)" id="info"></div>
+</div>
+
+<div id="t-battle">
+ <div class="card" style="padding:6px">
+  <div class="hd" style="text-align:center;font-size:19px" id="isl"></div>
+  <canvas id="cv" width="240" height="135"></canvas>
+  <div class="row" style="margin:6px 0 0"><div style="flex:1"><div class="bar hp"><i id="php"></i></div><small id="pht"></small></div>
+  <div style="flex:1;text-align:right"><div class="bar ehp"><i id="ehp"></i></div><small id="eht"></small></div></div>
+ </div>
+ <div class="row"><button id="bAtk">⚔️ Attack</button><button id="bSp" class="alt"></button><button id="bUlt" class="ult"></button></div>
+ <div class="row"><button id="bHeal" class="alt"></button><button id="bAuto" class="alt"></button></div>
+ <div class="card log" id="log"></div>
+</div>
+<div id="t-up" class="hide card"></div>
+<div id="t-map" class="hide card"></div>
+<div id="t-res" class="hide card"></div><div id="t-fl" class="hide"></div><div id="t-me" class="hide"></div>
+
+<nav><button data-t="battle" class="on">⚔️<br>Battle</button><button data-t="up">💪<br>Train</button><button data-t="res">🔬<br>Study</button><button data-t="map">🗺️<br>Isles</button><button data-t="fl">⚓<br>Fleet</button><button data-t="me">🍎<br>Build</button></nav>
+<div id="toast"></div>
+<div class="ov hide" id="pick"><div class="card">
+ <h1 style="margin:0">☠️ Idle Pirate</h1>
+ <p style="color:var(--mut)"><b>🗡️ Swordsman</b>: hits harder, high crit chance.<br><br><b>🥊 Brawler</b>: tougher, strikes twice, recovers HP each turn.</p>
+ <div class="row"><button data-s="sword">🗡️ Sword</button><button data-s="fist">🥊 Fists</button></div>
+</div></div>
+
+<script>
+const $=i=>document.getElementById(i);
+const hexv=c=>[1,3,5].map(i=>parseInt(c.substr(i,2),16));
+const mix=(a,b,t)=>{a=hexv(a);b=hexv(b);return'rgb('+a.map((v,i)=>Math.round(v+(b[i]-v)*t))+')'};
+const BASE={k:'#1a1410',w:'#fff',e:'#111',c:'#f0c090',b:'#7a4a1e'};
+const PPAL={...BASE,d:'#232a4a',r:'#c0392b'};
+const SP={
+pl:["....kkkkkkk.....","...kddddddddk...","..kddwwddddddk..",".kkkkkkkkkkkkkk.","...kccccccck....","...kcccceccck...","...kcccccrrcck..","....kkcccccck...","..kkkrrrrrrkkk..",".kcckrrbbrrkcck.",".kcckrrbbrrkcck.","..kkkrrbbrrkkk..","....kddkkddk....","....kddk.kddk...","...kkddk.kddkk..","...kkkkk.kkkkk.."],
+crab:["..kk........kk..",".kaak......kaak.",".kaak.kkkk.kaak.","..kkkkaaaakkkk..","...kaeaaaaeak...","..kaaaaaaaaaak..","..kbkaaaaaakbk..",".kb.kkkkkkkk.bk.",".k..k......k..k."],
+shark:["........kk......",".......kaak....k","......kaaak...kk","..kkkkaaaakkkkak",".kaaaaaaaaaaaaak","kaewaaaaaaaaaakk","kwkwbbbbbbaaak..",".kkkkbbbbkkk....","......kkkk......"],
+oct:["....kkkkkkkk....","..kkaaaaaaaakk..",".kaaaaaaaaaaaak.",".kaaweaaaaewaak.",".kaaaaaaaaaaaak.",".kaabbaaaabbaak.","..kkaaaaaaaakk..",".kaakaakkaakaak.","kaak.kaak.kaak.k","kak..kak..kak...","kk...kk...kk...."],
+snk:["....kkkk........","...kaaaak.......","..kaeaaaak......","..kaaaaaak......","..kkrkkkk.......","...kkaaak.......","..kaaaaak.......",".kaabbbbak......",".kaabbbbbak.....","..kaaaaaaakkk...","...kkaaaaaaaak..",".....kkkkkkkk..."]};
+const E0=(s,n,p)=>({s,n,p});
+const H=(d,r,c,b)=>({d,r,c:c||'#f0c090',b:b||'#5a3a1a'});
+const ISL=[
+{n:"Starter Cove",e:"🏝️",lv:1,req:1,en:[E0('crab','Beach Crab',{a:'#e0562f',b:'#f08a4a'}),E0('pl','Thief Monkey',H('#6b4423','#8a5a2b','#c68a52')),E0('pl','Rookie Pirate',H('#333','#4a7bd0'))],boss:E0('pl','Captain Redbeard',H('#5a1010','#8a1a1a'))},
+{n:"Skull Reef",e:"💀",lv:6,req:5,en:[E0('shark','Reef Shark',{a:'#6a7f92',b:'#dfe6ec'}),E0('pl','Skull Raider',H('#222','#666','#e8e0d0')),E0('oct','Baby Kraken',{a:'#8a4ab0',b:'#c08ae0'})],boss:E0('oct','Giant Kraken',{a:'#2a7a6a',b:'#6ac0a0'})},
+{n:"Storm Archipelago",e:"⛈️",lv:12,req:10,en:[E0('pl','Storm Mage',H('#4a2a8a','#6a3ab0')),E0('snk','Sea Serpent',{a:'#3a9a4a',b:'#a0e08a'}),E0('pl','Sky Marauder',H('#1a6a7a','#2a9aa8'))],boss:E0('snk','Thunder Serpent',{a:'#d8b020',b:'#fff090'})},
+{n:"Marine Fortress",e:"🏰",lv:20,req:17,en:[E0('pl','Marine Guard',H('#1a2a5a','#eee')),E0('pl','Marine Captain',H('#d8b020','#2a4a9a')),E0('pl','Cannoneer',H('#444','#777'))],boss:E0('pl','Fleet Admiral',H('#eee','#1a3a8a'))},
+{n:"Lava Isle",e:"🌋",lv:30,req:25,en:[E0('crab','Magma Crab',{a:'#b02a10',b:'#ff8a2a'}),E0('snk','Lava Serpent',{a:'#c03a10',b:'#ffb04a'}),E0('pl','Flame Brute',H('#7a1a10','#e0601a'))],boss:E0('snk','Volcano Drake',{a:'#5a1a1a',b:'#ff7a2a'})},
+{n:"Emperor's Isle",e:"👑",lv:42,req:35,en:[E0('snk','Sea Dragon',{a:'#2a8a9a',b:'#e8d060'}),E0('pl','Warlord',H('#111','#2a2a2a','#f0c090','#f5c04a')),E0('pl','Ghost Captain',H('#4a7a8a','#a8d8e0','#dff'))],boss:E0('pl','Pirate Emperor',H('#f5c04a','#b8860b','#f0c090','#7a1a1a'))},
+{n:"Frozen Peak",e:"🏔️",lv:55,req:45,en:[E0('crab','Ice Crab',{a:'#9adcf0',b:'#e8faff'}),E0('snk','Snow Serpent',{a:'#e8f0f8',b:'#8ac0e0'}),E0('pl','Yeti',H('#cfe8f5','#eef8ff','#bde0f0'))],boss:E0('pl','Frost Emperor',H('#4a9ad0','#9adcf0','#cfe8f5'))},
+{n:"Ghost Graveyard",e:"👻",lv:70,req:55,en:[E0('shark','Ghost Shark',{a:'#8ad8c8',b:'#dfffee'}),E0('pl','Cursed Sailor',H('#2a4a3a','#4a8a6a','#a8d8b8')),E0('oct','Phantom Kraken',{a:'#3a6a6a',b:'#8ad8c8'})],boss:E0('pl','Captain Davy Bones',H('#111','#1a3a3a','#e8f0e0','#6a8a7a'))},
+{n:"Sky Island",e:"☁️",lv:90,req:70,en:[E0('snk','Sky Serpent',{a:'#f5e090',b:'#fff'}),E0('crab','Cloud Crab',{a:'#e8f0ff',b:'#fff'}),E0('pl','Thunder Knight',H('#d8b020','#f5e070'))],boss:E0('snk','Storm Drake',{a:'#4a5ad0',b:'#f5e070'})},
+{n:"Abyss Gate",e:"🌀",lv:120,req:90,en:[E0('crab','Void Crab',{a:'#6a2ab0',b:'#c08af0'}),E0('oct','Shadow Kraken',{a:'#1a0a3a',b:'#8a4ad0'}),E0('pl','Abyss Warlock',H('#2a0a4a','#5a1a8a','#c0a0e0'))],boss:E0('pl','The Devil King',H('#111','#a01018','#e0b090','#f5c04a'))}];
+const TH=[
+{s:['#5bb8f0','#bfe8ff'],sea:'#2f8fd0',sand:'#e8d08a',sun:'#fff3a0',d:'palm'},
+{s:['#d9603b','#f5b46a'],sea:'#2a5a7a',sand:'#a89070',sun:'#ffd27a',d:'rocks'},
+{s:['#2c3350','#5a6488'],sea:'#1e3a5a',sand:'#8a8070',d:'palm',st:1},
+{s:['#7ab0d8','#d8e8f0'],sea:'#2a6a9a',sand:'#9a9aa0',sun:'#fff',d:'tower'},
+{s:['#3a1010','#e0602a'],sea:'#5a2a2a',sand:'#3a3030',sun:'#ff9a3a',d:'volc'},
+{s:['#3a2a5a','#e8b04a'],sea:'#2a3a6a',sand:'#d8c080',sun:'#fff0b0',d:'pill'},
+{s:['#9ac0e0','#eaf4ff'],sea:'#4a7a9a',sand:'#f0f4f8',sun:'#fff',d:'ice',sn:1},
+{s:['#1a2a2a','#4a6a5a'],sea:'#1a3a3a',sand:'#4a5a50',sun:'#dfffe8',d:'wreck'},
+{s:['#6ac0ff','#ffffff'],sea:'#dff0ff',sand:'#f5f0d0',sun:'#fff3a0',d:'cloud'},
+{s:['#0a0518','#3a1a5a'],sea:'#12082a',sand:'#2a1a3a',d:'gate'}];
+const FR=[
+{n:"Ember Fruit",e:"🔥",d:"ATK ×1.3",atk:1.3,w:30},{n:"Tide Fruit",e:"🌊",d:"HP ×1.4",hp:1.4,w:30},
+{n:"Stone Fruit",e:"🪨",d:"HP ×1.25, ATK ×1.1",hp:1.25,atk:1.1,w:25},{n:"Gale Fruit",e:"🌪️",d:"+15% crit",crit:.15,w:20},
+{n:"Mend Fruit",e:"🍀",d:"Heal 4% HP/turn",reg:.04,w:15},{n:"Frost Fruit",e:"❄️",d:"HP ×1.2, ATK ×1.15",hp:1.2,atk:1.15,w:15},
+{n:"Thunder Fruit",e:"⚡",d:"ATK ×1.4, +10% crit",atk:1.4,crit:.1,w:8},{n:"Midas Fruit",e:"💰",d:"Gold ×1.5",gm:1.5,w:8},
+{n:"Magma Fruit",e:"🌋",d:"ATK ×1.5",atk:1.5,w:6},{n:"Shadow Fruit",e:"🌑",d:"ATK ×1.6, HP ×0.9",atk:1.6,hp:.9,w:4},
+{n:"Phoenix Fruit",e:"🦅",d:"ATK ×1.25, HP ×1.3, heal 3%/turn",atk:1.25,hp:1.3,reg:.03,w:2},
+{n:"Vine Fruit",e:"🌿",d:"Heal 6% HP/turn",reg:.06,w:12},{n:"Sonic Fruit",e:"🎵",d:"+20% crit, ATK ×1.1",crit:.2,atk:1.1,w:10},
+{n:"Crystal Fruit",e:"💎",d:"HP ×1.6",hp:1.6,w:10},{n:"Gravity Fruit",e:"🌀",d:"ATK ×1.35, HP ×1.15",atk:1.35,hp:1.15,w:7},
+{n:"Sun Fruit",e:"☀️",d:"ATK ×1.2, HP ×1.2, heal 2%, gold ×1.2",atk:1.2,hp:1.2,reg:.02,gm:1.2,w:8},{n:"Fortune Fruit",e:"🎲",d:"Gold ×2",gm:2,w:5},
+{n:"Spirit Fruit",e:"👻",d:"ATK ×1.3, +12% crit, heal 2%",atk:1.3,crit:.12,reg:.02,w:5},{n:"Time Fruit",e:"⏳",d:"Special cooldown -2, ATK ×1.15",cd:2,atk:1.15,w:3},
+{n:"Dragon Fruit",e:"🐲",d:"ATK ×1.5, HP ×1.5",atk:1.5,hp:1.5,w:2},{n:"Void Fruit",e:"🕳️",d:"ATK ×1.9, HP ×0.8",atk:1.9,hp:.8,w:2}];
+const rar=w=>w<=4?"Legendary":w<=8?"Epic":w<=15?"Rare":"Common";
+const CR=[["gun","💣","Gunner","Fires a cannon every turn",100],["cook","🍖","Cook","Heals you every turn",120],["nav","🧭","Navigator","+8% gold per level",150],["look","🔭","Lookout","+1.5% crit per level",200]];
+const KEY="idlePirate1";
+let S={lv:1,xp:0,gold:0,hp:0,style:null,rp:0,res:{},fruit2:null,name:'',fleet:null,up:{atk:0,vit:0,mas:0},crew:{gun:0,cook:0,nav:0,look:0},isl:0,kills:0,tk:0,bs:0,fruit:null,pend:null,auto:true,cd:0,cd2:0,t:Date.now()};
+try{const s=JSON.parse(localStorage.getItem(KEY));if(s&&s.up){S=Object.assign(S,s);S.crew=Object.assign({gun:0,cook:0,nav:0,look:0},s.crew)}}catch(e){}
+let E=null,log=[];
+const RES=[
+{id:'c1',e:'🗡️',n:'Whetstone',d:'+10% ATK',atk:.1,c:5},
+{id:'c2',e:'🛡️',n:'Thick Skin',d:'+10% HP',hp:.1,c:10,pre:'c1'},
+{id:'c3',e:'🎯',n:'Deadeye',d:'+5% crit',crit:.05,c:20,pre:'c2'},
+{id:'c4',e:'⏱️',n:'Battle Trance',d:'Special cooldown -1',cd:1,c:40,pre:'c3'},
+{id:'c5',e:'👹',n:"Warlord's Will",d:'+25% ATK, +15% HP',atk:.25,hp:.15,c:90,pre:'c4'},
+{id:'t1',e:'💱',n:'Haggling',d:'+10% gold',gm:.1,c:5},
+{id:'t2',e:'📦',n:'Bigger Holds',d:'+10% gold',gm:.1,c:12,pre:'t1'},
+{id:'t3',e:'🌙',n:'Night Watch',d:'+4h offline earnings',off:4,c:25,pre:'t2'},
+{id:'t4',e:'⚓',n:'Salvage Rights',d:'+1 research per kill',rp:1,c:45,pre:'t3'},
+{id:'t5',e:'👑',n:"Pirate King's Tax",d:'+30% gold',gm:.3,c:100,pre:'t4'},
+{id:'f1',e:'📖',n:'Fruit Scholar',d:'+1% fruit drop chance',fruit:.01,c:8},
+{id:'f2',e:'🍽️',n:"Devil's Appetite",d:'Unlock a 2nd fruit slot',c:30,pre:'f1'},
+{id:'f3',e:'🌱',n:'Deep Roots',d:'Fruit powers +25%',fa:.25,c:60,pre:'f2'},
+{id:'f4',e:'👁️',n:'Seafoam Sense',d:'+2% fruit drop chance',fruit:.02,c:80,pre:'f3'},
+{id:'f5',e:'✨',n:'Awakening',d:'Fruit powers +50% more',fa:.5,c:150,pre:'f4'}];
+const RS=k=>RES.reduce((a,n)=>a+(S.res[n.id]?(n[k]||0):0),0);
+const F=()=>{const fa=1+RS('fa'),o={atk:1,hp:1,gm:1,crit:0,reg:0,cd:0};[S.fruit,S.fruit2].forEach(i=>{if(i==null)return;const f=FR[i];['atk','hp','gm'].forEach(k=>{if(f[k])o[k]*=1+(f[k]-1)*fa});o.crit+=(f.crit||0)*fa;o.reg+=(f.reg||0)*fa;o.cd+=f.cd||0});return o};
+const FB=()=>1+.03*Math.min(10,Math.max(0,(FL.n||1)-1));
+const maxHp=()=>Math.floor((50+S.lv*12+S.up.vit*15)*(S.style=="fist"?1.3:1)*(F().hp||1)*(1+RS('hp')));
+const atk=()=>(5+S.lv*2+S.up.atk*3+S.up.mas*2)*(S.style=="sword"?1.25:.85)*(F().atk||1)*(1+RS('atk'))*FB();
+const crit=()=>Math.min(.85,(S.style=="sword"?.25:.08)+(F().crit||0)+S.crew.look*.015+RS('crit'));
+const gm=()=>(1+.08*S.crew.nav+RS('gm'))*(F().gm||1)*FB();
+const need=()=>Math.floor(20*Math.pow(S.lv,1.5));
+const cost=k=>Math.floor([20,20,30][k]*Math.pow(1.22,S.up[["atk","vit","mas"][k]]));
+const ccost=c=>Math.floor(c[4]*Math.pow(1.35,S.crew[c[0]]));
+const healCost=()=>10+S.lv*3;
+const fmt=n=>n>=1e6?(n/1e6).toFixed(1)+"M":n>=1e4?(n/1e3).toFixed(1)+"k":Math.floor(n);
+const bounty=()=>S.tk*150+S.bs*5000+S.lv*1000;
+function say(t){log.unshift(t);log=log.slice(0,6);$("log").innerHTML=log.map(x=>"<div>"+x+"</div>").join("")}
+let tt;function toast(m){const t=$("toast");t.textContent=m;t.classList.add("show");clearTimeout(tt);tt=setTimeout(()=>t.classList.remove("show"),3200)}
+function spawn(){
+ const I=ISL[S.isl],boss=S.kills%10==9,el=I.lv+Math.floor(Math.random()*4)+(S.kills%10>5?1:0);
+ const d=boss?I.boss:I.en[Math.floor(Math.random()*3)];
+ E={d:{s:d.s,pal:{...BASE,...d.p}},n:(boss?"BOSS ":"")+d.n,el,boss,mx:Math.floor(18*Math.pow(el,1.3)*(boss?3:1)),a:(2+el*1.6)*(boss?1.5:1)};
+ E.hp=E.mx;EI=1;say("A <b>"+E.n+"</b> (Lv"+el+") sails in!");
+}
+function pop(x,t,c,big){FT.push({x,y:64,t:""+t,c,l:1,big})}
+function hurt(cur,n,c,x){cur.hp-=n;EF=.25;pop(x||150,n,c?'#ffd23a':'#fff',c);if(cur.hp<=0&&!cur.dead){cur.dead=1;win(cur)}}
+function dmg(m,fc){const c=fc||Math.random()<crit();return[Math.max(1,Math.floor(atk()*m*(.9+Math.random()*.2)*(c?2:1))),c]}
+function attack(k){
+ const cur=E;PA=1;
+ if(S.style=="sword"){const[d,c]=dmg([1,3,7][k],k==2);say(["🗡️ Slash ","🌀 Grand Slash ","🐉 Dragon Cut "][k]+d+(c?" CRIT!":""));hurt(cur,d,c)}
+ else{const n=[2,4,1][k],m=[.6,.9,9][k];let s=[];for(let i=0;i<n&&!cur.dead;i++){const[d,c]=dmg(m);s.push(d);hurt(cur,d,c,140+i*14)}say(["🥊 Punches ","💥 Barrage ","🌋 Titan Smash "][k]+s.join("+"))}
+ if(k==1)S.cd=Math.max(2,5-RS('cd')-Math.floor(F().cd));if(k==2)S.cd2=14;
+}
+function enemyTurn(){
+ const d=Math.max(1,Math.floor(E.a*(.85+Math.random()*.3)));S.hp-=d;EA=1;PF=.25;pop(60,"-"+d,'#ff5a4a');
+ if(S.style=="fist")S.hp=Math.min(maxHp(),S.hp+Math.ceil(maxHp()*.02));
+ if(F().reg)S.hp=Math.min(maxHp(),S.hp+Math.ceil(maxHp()*F().reg));
+ if(S.hp<=0){const l=Math.floor(S.gold*.1);S.gold-=l;S.hp=maxHp();say("💀 Defeated! Lost "+l+" gold. Back to full HP.");spawn()}
+}
+function round(k){
+ if(!E||!S.style)return;const cur=E;
+ if(k==null)k=S.lv>=15&&S.cd2<=0?2:S.cd<=0?1:0;
+ attack(k);
+ if(!cur.dead&&S.crew.gun){hurt(cur,Math.max(1,Math.floor(atk()*.12*S.crew.gun)),0,120)}
+ if(S.crew.cook)S.hp=Math.min(maxHp(),S.hp+Math.ceil(maxHp()*.008*S.crew.cook));
+ if(!cur.dead)enemyTurn();
+ if(S.cd>0)S.cd--;if(S.cd2>0)S.cd2--;
+ draw();
+}
+function win(c){
+ const ship=1+Math.floor(Math.random()*3),g=Math.floor((5+c.el*3)*(c.boss?3:1)*ship*gm()),x=Math.floor((8+c.el*4)*(c.boss?3:1));
+ S.gold+=g;S.xp+=x;S.kills++;S.tk++;S.rp+=(c.boss?5:1)+RS('rp');if(c.boss)S.bs++;
+ say("🚢 Looted the ship: <b class='gold'>+"+g+"g</b> (x"+ship+"), +"+x+" XP");
+ if(Math.random()<(c.boss?.08:.02)+S.isl*.004+RS('fruit')){
+  const W=f=>f.w<=8?f.w*(1+S.isl*.4):f.w;let t=FR.reduce((a,f)=>a+W(f),0)*Math.random(),i=0;for(;i<FR.length;i++){t-=W(FR[i]);if(t<0)break}
+  i=Math.min(i,FR.length-1);S.pend=i;say("🍎 <b>Devil Fruit found: "+FR[i].e+" "+FR[i].n+"!</b>");toast("🍎 "+FR[i].n+" ("+rar(FR[i].w)+")! See Build tab");
+ }
+ while(S.xp>=need()){S.xp-=need();S.lv++;S.hp=maxHp();say("⭐ Level up! Now Lv"+S.lv);toast("⭐ Level "+S.lv+(S.lv==15?" — Ultimate unlocked!":""))}
+ spawn();
+}
+function heal(){const c=healCost();if(S.gold<c||S.hp>=maxHp())return;S.gold-=c;S.hp=Math.min(maxHp(),S.hp+Math.ceil(maxHp()*.4));pop(60,"+HP",'#5aff9a');say("🍺 Drank rum, +HP")}
+function turn(){if(!S.style||!S.auto)return;if(S.hp<maxHp()*.3&&S.gold>=healCost())heal();round()}
+function draw(){
+ $("lv").textContent="Lv "+S.lv+" "+(S.style=="sword"?"🗡️ Swordsman":S.style=="fist"?"🥊 Brawler":"");
+ $("gold").textContent="🪙 "+fmt(S.gold)+"  🔬 "+S.rp;$("xpb").style.width=100*S.xp/need()+"%";
+ $("info").textContent="ATK "+Math.floor(atk())+" • HP "+maxHp()+" • Crit "+Math.round(crit()*100)+"% • Kills "+S.tk+(S.fruit!=null?" • "+FR[S.fruit].e:"")+(S.fruit2!=null?FR[S.fruit2].e:"");
+ $("isl").textContent=ISL[S.isl].e+" "+ISL[S.isl].n+" — boss in "+(10-S.kills%10)+" kills";
+ $("php").style.width=Math.max(0,100*S.hp/maxHp())+"%";$("pht").textContent="You "+Math.max(0,Math.ceil(S.hp))+"/"+maxHp();
+ if(E){$("ehp").style.width=Math.max(0,100*E.hp/E.mx)+"%";$("eht").textContent=E.n+" "+Math.max(0,Math.ceil(E.hp))+"/"+E.mx}
+ $("bSp").textContent=S.cd>0?"⏳ "+S.cd:"✨ Special";$("bSp").classList.toggle("no",S.cd>0);
+ $("bUlt").textContent=S.lv<15?"🔒 Lv15":S.cd2>0?"⏳ "+S.cd2:"🔥 Ultimate";$("bUlt").classList.toggle("no",S.lv<15||S.cd2>0);
+ $("bHeal").textContent="🍺 Rum "+healCost()+"g";$("bHeal").classList.toggle("no",S.gold<healCost());
+ $("bAuto").textContent="Auto: "+(S.auto?"ON":"OFF");
+ document.querySelectorAll("[data-cost]").forEach(b=>b.classList.toggle("no",S.gold<+b.dataset.cost));
+}
+function drawUp(){
+ const tr=[["🗡️","Attack","+3 ATK"],["❤️","Vitality","+15 max HP"],["🌀","Style Mastery","+2 ATK"]];
+ $("t-up").innerHTML='<h3>Training</h3>'+tr.map((n,k)=>{const c=cost(k);return `<div class="item"><div>${n[0]} ${n[1]}<small>Lv ${S.up[["atk","vit","mas"][k]]} • ${n[2]}</small></div><button data-cost="${c}" data-up="${k}">🪙 ${fmt(c)}</button></div>`}).join("")
+ +'<h3 style="margin-top:10px">Your Crew</h3>'+CR.map(c=>{const p=ccost(c);return `<div class="item"><div>${c[1]} ${c[2]}<small>Lv ${S.crew[c[0]]} • ${c[3]}</small></div><button data-cost="${p}" data-cr="${c[0]}">🪙 ${fmt(p)}</button></div>`}).join("");
+}
+function drawMap(){
+ $("t-map").innerHTML="<h3>Sail to an island</h3>"+ISL.map((I,i)=>{const ok=S.lv>=I.req;return `<div class="item"><div>${I.e} ${I.n}${i==S.isl?" ✓":""}<small>${ok?"Enemies Lv "+I.lv+"+ • boss: "+I.boss.n:"🔒 Requires Lv "+I.req}</small></div><button ${ok&&i!=S.isl?"":"disabled"} data-isl="${i}">Sail</button></div>`}).join("");
+}
+function drawMe(){
+ const slots=S.res.f2?[S.fruit,S.fruit2]:[S.fruit];
+ let h='<div class="card"><div class="wanted"><small>WANTED</small><b>☠️ '+fmt(bounty())+' 🪙</b><small>'+S.tk+' ships sunk • '+S.bs+' bosses slain</small></div></div><div class="card"><h3>Devil Fruit</h3>'
+ +slots.map((i,k)=>'<div style="margin:6px 0">Slot '+(k+1)+': '+(i!=null?FR[i].e+" <b>"+FR[i].n+"</b> ("+rar(FR[i].w)+") — "+FR[i].d:"empty")+"</div>").join("");
+ if(S.pend!=null){const f=FR[S.pend];h+=`<div class="item"><div>${f.e} ${f.n}<small>${rar(f.w)}: ${f.d}</small></div><div>`+slots.map((_,k)=>`<button data-eat="${k+1}" style="margin:2px 0">Eat → slot ${k+1}</button>`).join("")+`</div></div>`}
+ else if(S.fruit==null)h+='<small>Beat enemies for a small chance to find one. Later islands drop rarer fruits!</small>';
+ h+='</div><div class="card"><h3>Fighting style</h3><div class="item"><div>'+(S.style=="sword"?"🗡️ Swordsman":"🥊 Brawler")+'<small>Switching costs 500 gold, keeps your levels</small></div><button class="alt" data-sw="1" data-cost="500">Switch</button></div></div><div class="card"><button class="alt" data-reset="1">Reset save</button></div>';
+ $("t-me").innerHTML=h;
+}
+document.body.addEventListener("click",e=>{
+ const b=e.target.closest("button");if(!b)return;const d=b.dataset;
+ if(d.s){S.style=d.s;S.hp=maxHp();$("pick").classList.add("hide");spawn();draw();save();return}
+ if(d.t){["battle","up","res","map","fl","me"].forEach(t=>$("t-"+t).classList.toggle("hide",t!=d.t));document.querySelectorAll("nav button").forEach(x=>x.classList.toggle("on",x==b));
+  if(d.t=="up")drawUp();if(d.t=="res")drawRes();if(d.t=="fl")drawFleet();if(d.t=="map")drawMap();if(d.t=="me")drawMe();return}
+ if(d.rs){const n=RES.find(x=>x.id==d.rs);if(n&&!S.res[n.id]&&(!n.pre||S.res[n.pre])&&S.rp>=n.c){S.rp-=n.c;S.res[n.id]=1;toast(n.e+" "+n.n+" researched!");drawRes();draw();save()}return}
+ if(d.nm){const v=$("nm").value.trim().slice(0,14);if(v){S.name=v;pushMe();save();toast("Name saved")}return}
+ if(d.fc){const nm=$("fin").value.trim(),id=slug(nm);if(id&&FL.ok)DB.doc("fleets/"+id).get().then(x=>{if(!x.exists)return DB.doc("fleets/"+id).set({name:nm,t:Date.now()})}).catch(()=>{}).then(()=>{joinFleet(id);drawFleet()});return}
+ if(d.fj){joinFleet(d.fj);drawFleet();return}
+ if(d.fl){if(unsub)unsub();unsub=null;try{DB.doc("fleets/"+S.fleet).collection("crew").doc(UID).delete()}catch(e){}S.fleet=null;FL.members=[];FL.n=1;save();drawFleet();draw();return}
+ if(d.up!=null){const k=+d.up,c=cost(k);if(S.gold>=c){S.gold-=c;S.up[["atk","vit","mas"][k]]++;if(k==1)S.hp+=15;drawUp();draw();save()}return}
+ if(d.cr){const c=CR.find(x=>x[0]==d.cr),p=ccost(c);if(S.gold>=p){S.gold-=p;S.crew[d.cr]++;drawUp();draw();save()}return}
+ if(d.isl!=null){S.isl=+d.isl;S.kills=0;spawn();drawMap();draw();say("⛵ Sailed to "+ISL[S.isl].n);save();return}
+ if(d.eat){if(d.eat=='2')S.fruit2=S.pend;else S.fruit=S.pend;S.pend=null;S.hp=Math.min(S.hp,maxHp());say("😋 Ate the fruit... awful taste, awesome power!");drawMe();draw();save();return}
+ if(d.sw&&S.gold>=500){S.gold-=500;S.style=S.style=="sword"?"fist":"sword";S.hp=Math.min(S.hp,maxHp());drawMe();draw();save();return}
+ if(d.reset&&confirm("Delete all progress?")){try{localStorage.removeItem(KEY)}catch(e){}location.reload()}
+});
+$("bAtk").onclick=()=>{if(S.auto)S.auto=false;round(0)};
+$("bSp").onclick=()=>{if(S.cd<=0)round(1)};
+$("bUlt").onclick=()=>{if(S.lv>=15&&S.cd2<=0)round(2)};
+$("bHeal").onclick=()=>{heal();draw()};
+$("bAuto").onclick=()=>{S.auto=!S.auto;draw()};
+function save(){S.t=Date.now();try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){}}
+
+/* ---------- pixel renderer ---------- */
+const cv=$("cv"),g=cv.getContext("2d");
+let T=0,last=0,PA=0,EA=0,PF=0,EF=0,EI=0,FT=[];
+const R=(x,y,w,h,c)=>{g.fillStyle=c;g.fillRect(Math.round(x),Math.round(y),w,h)};
+function spr(rows,pal,cx,fy,sc,flip,fl){
+ const w=Math.max(...rows.map(r=>r.length)),h=rows.length,fw=fl>0&&(T*30|0)%2;
+ rows.forEach((r,j)=>{for(let i=0;i<r.length;i++){const ch=r[i];if(ch=='.')continue;
+  R(cx-w*sc/2+(flip?w-1-i:i)*sc,fy-h*sc+j*sc,sc,sc,fw?'#fff':pal[ch]||'#f0f')}})}
+const DECO={
+palm(){const p=(x)=>{for(let i=0;i<9;i++)R(x+(i*i>>4),96-i*6,4,6,'#7a4a1e');const tx=x+5,ty=48;R(tx-14,ty,28,3,'#2a8a3a');R(tx-10,ty-4,20,3,'#3aaa4a');R(tx-19,ty+3,10,3,'#2a8a3a');R(tx+9,ty+3,10,3,'#2a8a3a');R(tx-1,ty+3,3,3,'#5a3a1a')};p(10);p(212)},
+rocks(){R(8,84,28,16,'#4a4650');R(14,77,14,9,'#5a5660');R(196,90,30,10,'#4a4650');R(222,52,2,48,'#3a2414');R(224,52,14,9,'#111');R(229,54,4,4,'#fff')},
+tower(){R(10,38,32,62,'#8a8a92');for(let i=0;i<4;i++)R(10+i*9,33,6,6,'#8a8a92');R(24,56,6,10,'#222');R(25,14,2,20,'#333');R(27,14,10,6,'#d33');R(200,64,30,36,'#7a7a82');for(let i=0;i<3;i++)R(200+i*11,60,7,5,'#7a7a82')},
+volc(){for(let i=0;i<50;i++)R(190-i,50+i,i*2,1,'#3a2a2a');R(185,50,10,4,'#ff7a2a');for(let i=0;i<6;i++)R(186+(i*7)%20,50-((T*20+i*13)%40),2,2,'#ffb04a');R(10,70,20,30,'#2a2020')},
+ice(){for(let i=0;i<5;i++){const x=20+i*48,h=30+(i*17%25);for(let j=0;j<h;j++)R(x-((h-j)>>2),100-j,((h-j)>>1)+1,1,i%2?'#bfe4f5':'#e8faff')}},
+wreck(){R(20,80,4,20,'#3a2a20');R(10,86,26,3,'#3a2a20');R(24,62,3,22,'#2a1a14');R(190,84,40,12,'#3a2a20');R(200,66,3,20,'#2a1a14');R(0,88,240,10,'rgba(200,255,230,.15)')},
+cloud(){[[20,80],[110,90],[180,76]].forEach(([x,y])=>{R(x,y,44,10,'#fff');R(x+8,y-6,28,8,'#fff')});R(100,50,4,40,'#f5c04a');R(92,44,20,8,'#f5c04a');R(97,38,10,6,'#ffe08a')},
+gate(){const q=Math.sin(T*2)*.3+.7;g.strokeStyle='rgba(190,90,255,'+q+')';g.lineWidth=5;g.beginPath();g.ellipse(190,72,20,30,0,0,7);g.stroke();g.fillStyle='rgba(90,20,140,.6)';g.beginPath();g.ellipse(190,72,17,27,0,0,7);g.fill();R(20,60,10,40,'#1a0a2a');R(50,74,8,26,'#1a0a2a')},
+pill(){[14,46,196].forEach((x,i)=>{R(x,i==2?68:48,8,i==2?32:52,'#d8c8a0');R(x-3,i==2?64:44,14,5,'#eadab0')});R(100,84,40,16,'#c8a84a');R(108,74,24,10,'#f5c04a')}};
+function scene(){
+ const th=TH[S.isl];
+ for(let i=0;i<9;i++)R(0,i*8,240,9,mix(th.s[0],th.s[1],i/8));
+ if(th.sun){g.fillStyle=th.sun;g.beginPath();g.arc(195,34,13,0,7);g.fill()}
+ for(let i=0;i<3;i++){const x=(T*5+i*95)%300-50,y=14+i*14;R(x,y,34,6,'rgba(255,255,255,.7)');R(x+6,y-4,20,5,'rgba(255,255,255,.7)')}
+ R(0,66,240,40,th.sea);
+ for(let k=0;k<6;k++)for(let j=0;j<9;j++)R((((j*30+(k%2)*15+T*(k%2?9:-9))%270)+270)%270-15,68+k*6,10,1,'rgba(255,255,255,.35)');
+ const sy=60+Math.sin(T*1.5)*1.5;R(120,sy,28,5,'#3a2414');R(133,sy-18,2,18,'#3a2414');R(124,sy-16,9,11,'#eadfc4');R(136,sy-14,8,9,'#eadfc4');
+ R(0,100,240,35,th.sand);R(0,98,240,3,'rgba(255,255,255,.55)');R(0,124,240,11,'rgba(0,0,0,.14)');
+ DECO[th.d]();
+}
+function rain(){if(TH[S.isl].sn){g.fillStyle='#fff';for(let i=0;i<40;i++)g.fillRect(((i*29+T*12+Math.sin(T+i)*6)%240)|0,((i*47+T*30)%135)|0,1,1)}if(!TH[S.isl].st)return;g.fillStyle='rgba(200,220,255,.6)';for(let i=0;i<30;i++)g.fillRect(((i*37+T*90)%240)|0,((i*53+T*260)%135)|0,1,4);if(Math.sin(T*1.3)>.985)R(0,0,240,135,'rgba(255,255,255,.5)')}
+function drawPlayer(){
+ const x=68+Math.sin(Math.PI*PA)*38,y=112+Math.sin(T*3)*1.5;
+ R(50,112,36,4,'rgba(0,0,0,.25)');spr(SP.pl,PPAL,x,y,3,false,PF);
+ const hx=x+16,hy=y-17;
+ if(S.style=='sword'){g.save();g.translate(Math.round(hx),Math.round(hy));g.rotate(-.35+PA*1.9);R(-1,-26,3,26,'#dfe8f0');R(-1,-26,1,26,'#fff');R(-5,-2,11,3,'#f5c04a');R(-1,1,3,4,'#5a3a1a');g.restore()}
+ else{const o=PA*10;R(hx-4+o,hy-4,9,9,'#1a1410');R(hx-3+o,hy-3,7,7,'#f0c090')}
+}
+function drawEnemy(){
+ const sc=E.boss?4:3,x=175+EI*70-Math.sin(Math.PI*EA)*30;
+ R(x-22,112,44,4,'rgba(0,0,0,.25)');spr(SP[E.d.s],E.d.pal,x,112+Math.sin(T*3+1)*1.5,sc,E.d.s=='pl',EF);
+}
+function frame(ts){
+ const dt=Math.min(.05,(ts-last)/1000);last=ts;T=ts/1000;
+ PA=Math.max(0,PA-dt*4);EA=Math.max(0,EA-dt*4);PF=Math.max(0,PF-dt);EF=Math.max(0,EF-dt);EI=Math.max(0,EI-dt*2);
+ scene();if(S.style){drawPlayer();if(E)drawEnemy()}rain();
+ FT=FT.filter(f=>(f.l-=dt)>0);
+ FT.forEach(f=>{const y=f.y-(1-f.l)*24;g.globalAlpha=Math.min(1,f.l*2);g.font=(f.big?'bold 14px':'bold 10px')+' monospace';g.fillStyle='#000';g.fillText(f.t,f.x+1,y+1);g.fillStyle=f.c;g.fillText(f.t,f.x,y)});
+ g.globalAlpha=1;requestAnimationFrame(frame);
+}
+
+function drawRes(){
+ const B=[["c","⚔️ Combat"],["t","🧭 Trade"],["f","🍎 Fruit Lore"]];
+ $("t-res").innerHTML='<h3>Research</h3><small>🔬 '+S.rp+' points — earn 1 per kill, 5 per boss</small>'+B.map(b=>'<h3 style="margin-top:10px">'+b[1]+'</h3>'+RES.filter(n=>n.id[0]==b[0]).map(n=>{const done=S.res[n.id],pre=n.pre&&!S.res[n.pre];return `<div class="item" style="opacity:${done||!pre?1:.5}"><div>${n.e} ${n.n}<small>${n.d}${pre?' • needs '+RES.find(x=>x.id==n.pre).n:''}</small></div>${done?'<b>✓</b>':`<button ${!pre&&S.rp>=n.c?'':'disabled'} data-rs="${n.id}">🔬 ${n.c}</button>`}</div>`}).join("")).join("");
+}
+const esc=s=>String(s).replace(/[&<>"']/g,c=>'&#'+c.charCodeAt(0)+';');
+const slug=s=>s.toLowerCase().replace(/[^a-z0-9]/g,'').slice(0,20);
+let FL={ok:false,members:[],n:1},DB=null,UID=null,unsub=null;
+if(!S.name)S.name="Pirate"+Math.floor(Math.random()*900+100);
+const fleetOpen=()=>!$("t-fl").classList.contains("hide");
+async function initNet(){
+ try{if(!window.claude)return;DB=await claude.use("db");const u=await claude.use("user");UID=u?String(await u.id()):null;
+  if(DB&&UID){FL.ok=true;if(S.fleet)joinFleet(S.fleet)}}catch(e){}
+ if(fleetOpen())drawFleet();
+}
+async function pushMe(){if(!FL.ok||!S.fleet)return;try{await DB.doc("fleets/"+S.fleet).collection("crew").doc(UID).set({n:S.name,lv:S.lv,b:bounty(),st:S.style||"",t:Date.now()})}catch(e){}}
+function joinFleet(id){
+ S.fleet=id;if(unsub)unsub();
+ unsub=DB.doc("fleets/"+id).collection("crew").onSnapshot(sn=>{FL.members=sn.docs.map(d=>({id:d.id,...d.data()})).sort((a,b)=>b.b-a.b);FL.n=FL.members.filter(m=>Date.now()-m.t<6048e5).length||1;draw();if(fleetOpen())drawFleet()},()=>{});
+ pushMe();save();
+}
+async function drawFleet(){
+ const el=$("t-fl");
+ if(el.innerHTML&&document.activeElement&&document.activeElement.tagName=="INPUT")return;
+ if(!FL.ok){el.innerHTML='<div class="card"><h3>⚓ Fleets</h3>Fleets need this page to be opened by a signed-in Claude user who has been given access. Share the artifact with your friends, have them open it, and you can all join the same fleet.</div>';return}
+ let h='<div class="card"><h3>🏴‍☠️ Your pirate name</h3><div class="row" style="margin:0"><input id="nm" maxlength="14" value="'+esc(S.name)+'"><button data-nm="1" style="flex:1">Save</button></div></div>';
+ if(S.fleet){
+  h+='<div class="card"><h3>⚓ '+esc(S.fleet)+'</h3><div>Fleet bonus: <b class="gold">+'+Math.round((FB()-1)*100)+'% ATK &amp; gold</b><br><small>'+FL.n+' active crewmates this week: +3% each, max +30%</small></div>'+FL.members.map((m,i)=>'<div class="item"><div>'+(i+1)+'. '+(m.st=="fist"?"🥊":"🗡️")+' '+esc(m.n)+(m.id==UID?" (you)":"")+'<small>Lv '+(m.lv|0)+'</small></div><div class="gold hd">☠️ '+fmt(+m.b||0)+'</div></div>').join("")+'<div class="row" style="margin:10px 0 0"><button class="alt" data-fl="1">Leave fleet</button></div></div>';
+  el.innerHTML=h;
+ }else{
+  h+='<div class="card"><h3>Found or join a fleet</h3><small>Type a fleet name. If it exists you join it, otherwise you found it. Friends type the same name to join you.</small><div class="row" style="margin:8px 0 0"><input id="fin" maxlength="20" placeholder="Fleet name"><button data-fc="1" style="flex:1">Go</button></div><div id="fl-list"></div></div>';
+  el.innerHTML=h;
+  try{const sn=await DB.collection("fleets").limit(8).get(),l=$("fl-list");if(l&&sn.size)l.innerHTML='<small>Open fleets:</small>'+sn.docs.map(d=>'<div class="item"><div>⚓ '+esc(d.data().name||d.id)+'</div><button data-fj="'+esc(d.id)+'">Join</button></div>').join("")}catch(e){}
+ }
+}
+/* ---------- start ---------- */
+if(S.style){
+ const away=Math.min((Date.now()-S.t)/1000,28800+RS('off')*3600);
+ if(away>30){const I=ISL[S.isl],n=Math.floor(away/8*.6),gg=Math.floor((5+(I.lv+1)*3)*2*gm())*n;S.gold+=gg;S.xp+=(8+(I.lv+1)*4)*n;
+  while(S.xp>=need()){S.xp-=need();S.lv++}S.hp=maxHp();setTimeout(()=>say("🌙 While away, your crew earned "+fmt(gg)+" gold."),100)}
+ if(!S.hp||S.hp>maxHp())S.hp=maxHp();
+ spawn();
+}else $("pick").classList.remove("hide");
+setInterval(turn,900);setInterval(save,5000);
+document.addEventListener("visibilitychange",()=>{if(document.hidden)save()});
+draw();requestAnimationFrame(frame);initNet();setInterval(pushMe,20000);
+</script></body></html>
